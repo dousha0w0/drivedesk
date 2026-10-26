@@ -191,6 +191,8 @@ export default {
     mockBody: "Running on demo data; no Google account needed. Unset DRIVEDESK_MOCK=1 to sign in to a real drive.",
     close: "Start browsing",
     signIn: "Sign in with Google",
+    signInShort: "Sign in",
+    signedOutHint: "Sign in to browse your Drive files here",
     useOwn: "Use my own OAuth client",
     builtinHint: "This build ships an OAuth client, so one click signs you in. If Google says the app is unverified or access is blocked, the project behind that client has not passed verification and only its test users can sign in.",
     noBuiltin: "This build has no built-in OAuth client; import your own Desktop-app client JSON.",

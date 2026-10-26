@@ -9,6 +9,7 @@ import { useTransfersStore } from "@/stores/transfers";
 import { useUiStore } from "@/stores/ui";
 import { useDialogsStore } from "@/stores/dialogs";
 import { i18n } from "@/i18n";
+import { isMacPlatform } from "@/lib/platform";
 import { api } from "@/lib/api";
 
 const files = useFilesStore();
@@ -20,7 +21,7 @@ const t = (key: string, params?: Record<string, unknown>) => i18n.global.t(key, 
 
 const searchText = ref("");
 const searchFocused = ref(false);
-const isMac = computed(() => session.info?.platform === "darwin");
+const isMac = computed(() => isMacPlatform(session.info?.platform));
 const canDownload = computed(() => files.selectedCount > 0 || files.previewId !== null);
 
 watch(
@@ -175,6 +176,16 @@ function showDetails(): void {
         </button>
       </div>
     </div>
+
+    <AppButton
+      v-if="!session.signedIn && !session.isMock"
+      size="sm"
+      variant="primary"
+      icon="account"
+      data-testid="toolbar-login"
+      @click="ui.loginOpen = true"
+      >{{ $t("login.signInShort") }}</AppButton
+    >
 
     <button
       class="flex h-8 items-center gap-1.5 rounded-[6px] px-1.5 hover:bg-muted"

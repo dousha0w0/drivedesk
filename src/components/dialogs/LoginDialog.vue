@@ -1,59 +1,15 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import AppModal from "@/components/ui/AppModal.vue";
 import AppButton from "@/components/ui/AppButton.vue";
 import Icon from "@/components/ui/Icon.vue";
 import { api } from "@/lib/api";
-import { errorMessage } from "@/lib/errors";
-import { useFilesStore } from "@/stores/files";
+import { useGoogleSignIn } from "@/composables/useGoogleSignIn";
 import { useSessionStore } from "@/stores/session";
 import { useUiStore } from "@/stores/ui";
-import { i18n } from "@/i18n";
 
 const ui = useUiStore();
 const session = useSessionStore();
-const files = useFilesStore();
-const t = (key: string, params?: Record<string, unknown>) => i18n.global.t(key, params ?? {});
-
-const working = ref(false);
-const error = ref<string | null>(null);
-
-const hasBuiltin = computed(() => session.info?.builtinClient === true);
-
-async function finishLogin(): Promise<void> {
-  ui.toast(t("toast.loginSuccess", { email: session.activeAccount?.email ?? "" }), "success");
-  ui.loginOpen = false;
-  await files.navigate({ view: "folder", folderId: "root", query: "" });
-}
-
-async function quickLogin(): Promise<void> {
-  error.value = null;
-  working.value = true;
-  try {
-    await session.loginQuick();
-    await finishLogin();
-  } catch (caught) {
-    error.value = errorMessage(caught);
-  } finally {
-    working.value = false;
-  }
-}
-
-async function importClient(): Promise<void> {
-  error.value = null;
-  const picked = await openDialog({ multiple: false, filters: [{ name: "OAuth client", extensions: ["json"] }] });
-  if (!picked || Array.isArray(picked)) return;
-  working.value = true;
-  try {
-    await session.login(picked);
-    await finishLogin();
-  } catch (caught) {
-    error.value = errorMessage(caught);
-  } finally {
-    working.value = false;
-  }
-}
+const { working, error, hasBuiltin, quick, importClient } = useGoogleSignIn();
 
 function openExternal(url: string): void {
   void api.systemOpenUrl(url);
@@ -88,7 +44,7 @@ function openExternal(url: string): void {
           class="flex h-9 w-full items-center justify-center gap-2 rounded-[7px] bg-primary text-[13px] font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
           :disabled="working"
           data-testid="quick-login"
-          @click="quickLogin"
+          @click="quick"
         >
           <Icon name="account" :size="15" />
           {{ $t("login.signIn") }}
@@ -117,7 +73,12 @@ function openExternal(url: string): void {
         <AppButton size="sm" :variant="hasBuiltin ? 'ghost' : 'primary'" icon="folder" :disabled="working" @click="importClient">
           {{ hasBuiltin ? $t("login.useOwn") : $t("login.import") }}
         </AppButton>
-        <AppButton size="sm" variant="ghost" icon="external" @click="openExternal('https://developers.google.com/workspace/guides/create-credentials')">
+        <AppButton
+          size="sm"
+          variant="ghost"
+          icon="external"
+          @click="openExternal('https://developers.google.com/workspace/guides/create-credentials')"
+        >
           {{ $t("login.linkCredentials") }}
         </AppButton>
         <AppButton size="sm" variant="ghost" icon="shield" @click="openExternal('https://support.google.com/cloud/answer/6158849')">

@@ -191,6 +191,8 @@ export default {
     mockBody: "当前以演示数据运行，不需要 Google 账号。去掉 DRIVEDESK_MOCK=1 后即可登录真实云盘。",
     close: "开始浏览",
     signIn: "使用 Google 登录",
+    signInShort: "登录",
+    signedOutHint: "登录后在这里浏览你的云盘文件",
     useOwn: "使用我自己的 OAuth 客户端",
     builtinHint: "此构建内置了 OAuth 客户端，点一下就能登录。若提示「应用未经验证」或「无权限」，说明该客户端所属项目未通过 Google 验证，只有项目里的测试用户能登录。",
     noBuiltin: "此构建没有内置 OAuth 客户端，需要导入你自己的「桌面应用」类型客户端 JSON。",

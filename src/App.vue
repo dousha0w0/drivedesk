@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import AppToolbar from "@/components/layout/AppToolbar.vue";
 import AppSidebar from "@/components/layout/AppSidebar.vue";
 import BreadcrumbBar from "@/components/layout/BreadcrumbBar.vue";
 import FileTable from "@/components/layout/FileTable.vue";
+import SignedOutState from "@/components/layout/SignedOutState.vue";
 import PreviewPanel from "@/components/layout/PreviewPanel.vue";
 import TransferDock from "@/components/layout/TransferDock.vue";
 import StatusBar from "@/components/layout/StatusBar.vue";
@@ -38,6 +39,7 @@ const sidebarWidth = ref(ui.prefs.sidebarWidth);
 const detailsWidth = ref(ui.prefs.rightPanelWidth);
 const dockHeight = ref(ui.prefs.dockHeight);
 const dragOver = ref(false);
+const signedOut = computed(() => !session.signedIn && !session.isMock);
 
 let unlistenDrag: (() => void) | null = null;
 let completionTimer: number | null = null;
@@ -247,8 +249,6 @@ async function bootstrap(): Promise<void> {
 
   if (session.signedIn || session.isMock) {
     await files.navigate({ view: "folder", folderId: "root", query: "" });
-  } else {
-    ui.loginOpen = true;
   }
 
   await api.appReady();
@@ -291,15 +291,18 @@ onBeforeUnmount(() => {
         </div>
 
         <main class="app-workspace app-pane">
-          <BreadcrumbBar />
-          <FileTable />
-          <div v-if="ui.prefs.transferDockOpen" class="relative shrink-0">
-            <div class="resize-handle resize-handle--row resize-handle--row-top" @pointerdown="dockResize.onPointerDown" />
-            <TransferDock />
-          </div>
+          <SignedOutState v-if="signedOut" />
+          <template v-else>
+            <BreadcrumbBar />
+            <FileTable />
+            <div v-if="ui.prefs.transferDockOpen" class="relative shrink-0">
+              <div class="resize-handle resize-handle--row resize-handle--row-top" @pointerdown="dockResize.onPointerDown" />
+              <TransferDock />
+            </div>
+          </template>
         </main>
 
-        <aside v-if="ui.prefs.rightPanelOpen" class="app-details app-pane relative" :style="{ width: `${detailsWidth}px` }">
+        <aside v-if="ui.prefs.rightPanelOpen && !signedOut" class="app-details app-pane relative" :style="{ width: `${detailsWidth}px` }">
           <div class="resize-handle resize-handle--left" @pointerdown="detailsResize.onPointerDown" />
           <PreviewPanel />
         </aside>

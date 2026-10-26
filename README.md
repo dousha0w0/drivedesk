@@ -72,9 +72,11 @@ DRIVEDESK_GOOGLE_CLIENT_SECRET=yyyy \
 pnpm tauri build
 ```
 
-这样打出来的包，登录弹窗只有一颗「使用 Google 登录」按钮，点一下进浏览器选账号即可，用户完全不需要碰 GCP。
+这样打出来的包，启动就是一张登录页：主按钮是「使用 Google 登录」，点一下进浏览器选账号即可，用户完全不需要碰 GCP。工具栏在没有账号时也会常驻一个「登录」按钮，头像菜单里的「添加账号」仍然可用。
 
-![一键登录](docs/login-quick.png)开发时用运行时环境变量也能达到同样效果，不必重编：
+![登录页（构建内置客户端时）](docs/login-quick.png)
+
+没有内置凭据的构建不会出现这颗按钮，而是显示「导入 OAuth 客户端 JSON」＋配置链接——这是构建设置的差异，不是入口缺失：内置凭据由 `DRIVEDESK_GOOGLE_CLIENT_ID/SECRET` 在构建（或启动）时提供。开发时用运行时环境变量也能达到同样效果，不必重编：
 
 ```sh
 DRIVEDESK_GOOGLE_CLIENT_ID=... DRIVEDESK_GOOGLE_CLIENT_SECRET=... cargo run --manifest-path src-tauri/Cargo.toml
@@ -202,7 +204,7 @@ Vue 组件 → stores → lib/api.ts → invoke() → commands.rs → Backend(Li
 
 ```sh
 cargo test --manifest-path src-tauri/Cargo.toml   # 19 项：排序/重名/查询构造/PDF 生成/凭据文件名/传输命名…
-pnpm test                                          # 32 项：选择模型/排序/格式化/偏好清洗/Google 错误映射/登录弹窗分支/i18n 键覆盖
+pnpm test                                          # 36 项：选择模型/排序/格式化/偏好清洗/Google 错误映射/登录与未登录入口/平台判定/i18n 键覆盖
 pnpm exec vue-tsc --noEmit                         # 类型检查
 ```
 
