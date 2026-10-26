@@ -243,7 +243,7 @@ async function bootstrap(): Promise<void> {
   const log = (message: string) => void api.log("info", message);
   log("bootstrap: start");
   await session.init();
-  log(`bootstrap: session (signedIn=${session.signedIn} mock=${session.isMock} error=${session.error ?? ""})`);
+  log(`bootstrap: session (signedIn=${session.signedIn} mock=${session.isMock} builtinClient=${session.info?.builtinClient === true} error=${session.error ?? ""})`);
   await transfers.init();
   await registerDragAndDrop();
 

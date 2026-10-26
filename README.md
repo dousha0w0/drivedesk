@@ -67,6 +67,12 @@ DRIVEDESK_MOCK=1 cargo run --manifest-path src-tauri/Cargo.toml
 **方式 A：一键登录（构建里内置 OAuth 客户端）**
 
 ```sh
+pnpm bundle:with-client ~/Downloads/client_secret_xxx.json
+```
+
+脚本会校验文件是「桌面应用」类型、打印脱敏后的 client_id，然后以注入的环境变量执行 `pnpm tauri build`。`--check` 只校验不构建；其余参数原样传给 tauri（例如 `--bundles app`）。等价的手工写法：
+
+```sh
 DRIVEDESK_GOOGLE_CLIENT_ID=xxxx.apps.googleusercontent.com \
 DRIVEDESK_GOOGLE_CLIENT_SECRET=yyyy \
 pnpm tauri build
@@ -102,16 +108,24 @@ DRIVEDESK_GOOGLE_CLIENT_ID=... DRIVEDESK_GOOGLE_CLIENT_SECRET=... cargo run --ma
 
 内置客户端 = 内置的是**某个具体 Google Cloud 项目**的 OAuth 客户端。桌面应用的 `client_secret` 按 Google 的定义是公开的，所以打包没风险；真正的限制在项目状态：
 
-| 项目状态 | 谁能登录 | refresh token 寿命 | 代价 |
+| 发布状态 | 谁能登录 | refresh token 寿命 | 代价 |
 | --- | --- | --- | --- |
-| Testing（未验证） | 只有你在「测试用户」里加过的账号，**上限 100 个** | **7 天**，过期需重新登录 | 免费，5 分钟 |
-| In production + 已验证 | 任意 Google 账号 | 长期有效 | Drive 属受限 scope，需要 Google 验证（含 CASA 安全评估），每年复审 |
+| Testing | 只有「测试用户」名单里的账号，**硬上限 100** | **7 天**，过期需重新登录 | 免费，5 分钟 |
+| Published + 未验证 | 任意账号可进，但敏感/受限 scope 仍有 **100 用户硬上限**，并显示危险警告 | 长期 | 官方明确「strongly discouraged」 |
+| Published + 已验证 | 任意账号，无警告 | 长期 | Drive 是受限 scope：品牌/权限验证 + 年度 CASA 安全评估 |
+
+依据：[OAuth app state overview](https://developers.google.com/identity/protocols/oauth2/production-readiness/overview)、[token 过期规则](https://developers.google.com/identity/protocols/oauth2#expiration)。
 
 所以：
 
 - **自己/小团队用**：建项目 → 同意屏加测试用户 → 用方式 A 打包，体验就是「下载即登录」。7 天重新登录一次。
 - **公开给任意用户**：要么完成受限 scope 验证，要么保持方式 B（让用户建自己的客户端）。
 - 别把别人的 client ID 打进自己的包：Google 会按客户端归属追责，也能随时撤销。
+
+另两条经验值得记住：
+
+- **桌面客户端的 `client_secret` 本来就是公开的**：Google 对 installed app 的定义是「无法保守秘密的 public client」，所以把它写进二进制/开源仓库是正常做法（[官方说明](https://developers.google.com/identity/protocols/oauth2/native-app)）。真正要保护的是 refresh token，它在系统凭据库里。
+- **别指望一个 client_id 全世界共用**：rclone 多年提供 shared client_id，如今官方提示它会在 2026 年内停用，改用自带 client（[rclone 文档](https://rclone.org/drive/)）。所以要么各自建客户端，要么把自己的项目做到验证通过。
 
 这条限制不是实现问题——应用侧代码已经就绪（`account_login_quick`），换一个已验证的 client_id 就自动升级为全量可用。
 

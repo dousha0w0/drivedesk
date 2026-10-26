@@ -13,7 +13,8 @@
     "tauri": "tauri",
     "test": "vitest run",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
-    "test:smoke": "node scripts/run-smoke.mjs"
+    "test:smoke": "node scripts/run-smoke.mjs",
+    "bundle:with-client": "node scripts/bundle-with-client.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
