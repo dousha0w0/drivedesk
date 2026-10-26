@@ -50,6 +50,13 @@ impl Backend {
         }
     }
 
+    pub async fn login_builtin(&self) -> Result<Account> {
+        match self {
+            Self::Live(live) => live.auth.login_builtin().await,
+            Self::Mock(mock) => Ok(mock.drive.accounts().remove(0)),
+        }
+    }
+
     pub async fn switch(&self, email: &str) -> Result<()> {
         match self {
             Self::Live(live) => live.auth.switch(email),

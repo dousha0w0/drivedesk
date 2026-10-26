@@ -42,6 +42,12 @@ pub async fn account_login(state: State<'_, AppState>, client_json: Option<Strin
     state.backend.login(path).await
 }
 
+/// One-click sign-in with the OAuth client baked into this build.
+#[tauri::command]
+pub async fn account_login_quick(state: State<'_, AppState>) -> Result<crate::auth::Account> {
+    state.backend.login_builtin().await
+}
+
 #[tauri::command]
 pub async fn account_switch(state: State<'_, AppState>, email: String) -> Result<()> {
     state.backend.switch(&email).await

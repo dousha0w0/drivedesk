@@ -17,6 +17,13 @@ use crate::paths::AppPaths;
 use crate::secrets::SecretStore;
 
 const SCOPE: &str = "https://www.googleapis.com/auth/drive";
+/// Optional OAuth client shipped with the build. A Desktop client's secret is
+/// public by definition, so embedding the pair is normal for installed apps;
+/// what it cannot do is bypass Google's verification rules (see README).
+const BUILTIN_CLIENT_ID: Option<&str> = option_env!("DRIVEDESK_GOOGLE_CLIENT_ID");
+const BUILTIN_CLIENT_SECRET: Option<&str> = option_env!("DRIVEDESK_GOOGLE_CLIENT_SECRET");
+const BUILTIN_RUNTIME_ID: &str = "DRIVEDESK_GOOGLE_CLIENT_ID";
+const BUILTIN_RUNTIME_SECRET: &str = "DRIVEDESK_GOOGLE_CLIENT_SECRET";
 const DEFAULT_TOKEN_URI: &str = "https://oauth2.googleapis.com/token";
 const LOGIN_TIMEOUT: Duration = Duration::from_secs(300);
 
@@ -35,6 +42,10 @@ struct StoredAccount {
     email: String,
     name: String,
     picture: Option<String>,
+    /// `builtin` or `imported`. Refresh must use the client that produced the
+    /// token; older files without the field were imported clients.
+    #[serde(default)]
+    client: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -91,6 +102,15 @@ struct AboutUser {
     photo_link: Option<String>,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum ClientSource {
+    /// Imported client if present, else the built-in one.
+    Auto,
+    Builtin,
+    #[allow(dead_code)]
+    Imported,
+}
+
 pub struct AuthStore {
     paths: AppPaths,
     secrets: SecretStore,
@@ -123,6 +143,28 @@ impl AuthStore {
         }
     }
 
+    /// OAuth client baked into the binary (runtime env wins, so a dev build can
+    /// be pointed at a different project without recompiling).
+    pub fn builtin_client() -> Option<OAuthClient> {
+        let id = std::env::var(BUILTIN_RUNTIME_ID)
+            .ok()
+            .filter(|value| !value.trim().is_empty())
+            .or_else(|| BUILTIN_CLIENT_ID.map(str::to_string))?;
+        let secret = std::env::var(BUILTIN_RUNTIME_SECRET)
+            .ok()
+            .or_else(|| BUILTIN_CLIENT_SECRET.map(str::to_string))
+            .unwrap_or_default();
+        Some(OAuthClient { client_id: id, client_secret: secret, token_uri: DEFAULT_TOKEN_URI.to_string() })
+    }
+
+    pub fn has_builtin_client() -> bool {
+        Self::builtin_client().is_some()
+    }
+
+    pub fn has_any_client(&self) -> bool {
+        self.paths.client_file().exists() || Self::has_builtin_client()
+    }
+
     pub fn storage_label(&self) -> &'static str {
         self.secrets.kind().label()
     }
@@ -130,7 +172,7 @@ impl AuthStore {
     pub fn accounts(&self) -> Vec<Account> {
         let state = self.state.lock().unwrap();
         let default = state.file.default_email.clone();
-        let has_client = self.paths.client_file().exists();
+        let has_client = self.paths.client_file().exists() || Self::has_builtin_client();
         state
             .file
             .accounts
@@ -181,21 +223,57 @@ impl AuthStore {
     }
 
     /// Import (or reuse) the Desktop OAuth client and run the loopback flow.
+    /// Import a client JSON if given, otherwise reuse a stored client and fall
+    /// back to the one built into the binary.
     pub async fn login(&self, client_json: Option<PathBuf>) -> Result<Account> {
+        self.login_with(client_json, ClientSource::Auto).await
+    }
+
+    /// One-click sign-in: always uses the built-in client, ignoring any
+    /// previously imported one.
+    pub async fn login_builtin(&self) -> Result<Account> {
+        self.login_with(None, ClientSource::Builtin).await
+    }
+
+    async fn login_with(&self, client_json: Option<PathBuf>, source: ClientSource) -> Result<Account> {
+        let mut kind = "imported";
         if let Some(path) = client_json {
             let parsed = read_client(&path)?;
             let raw = std::fs::read(&path)?;
             std::fs::write(self.paths.client_file(), raw)?;
             let mut state = self.state.lock().unwrap();
             state.client = Some(parsed);
+            kind = "imported";
         }
 
-        let client = {
-            let state = self.state.lock().unwrap();
-            state
-                .client
-                .clone()
-                .ok_or_else(|| AppError::Message("请先导入 Google OAuth 桌面客户端 JSON".into()))?
+        let client = match source {
+            ClientSource::Builtin => {
+                kind = "builtin";
+                Self::builtin_client().ok_or_else(|| {
+                    AppError::Message(
+                        "此构建没有内置 Google OAuth 客户端，请改为导入你自己的桌面客户端 JSON。".into(),
+                    )
+                })?
+            }
+            ClientSource::Imported => {
+                let stored = self.state.lock().unwrap().client.clone();
+                stored.ok_or_else(|| AppError::Message("请先导入 Google OAuth 桌面客户端 JSON".into()))?
+            }
+            ClientSource::Auto => {
+                let stored = self.state.lock().unwrap().client.clone();
+                match (stored, Self::builtin_client()) {
+                    (Some(client), _) => client,
+                    (None, Some(client)) => {
+                        kind = "builtin";
+                        client
+                    }
+                    (None, None) => {
+                        return Err(AppError::Message(
+                            "请先导入 Google OAuth 桌面客户端 JSON".into(),
+                        ))
+                    }
+                }
+            }
         };
 
         let verifier: String = rand::thread_rng()
@@ -272,11 +350,13 @@ impl AuthStore {
             if let Some(existing) = state.file.accounts.iter_mut().find(|account| account.email == email) {
                 existing.name = name;
                 existing.picture = account.picture.clone();
+                existing.client = Some(kind.to_string());
             } else {
                 state.file.accounts.push(StoredAccount {
                     email: email.clone(),
                     name,
                     picture: account.picture.clone(),
+                    client: Some(kind.to_string()),
                 });
             }
             state.file.default_email = Some(email);
@@ -301,7 +381,21 @@ impl AuthStore {
             .secrets
             .get(email)?
             .ok_or(AppError::NotSignedIn)?;
-        let client = {
+        let kind = {
+            let state = self.state.lock().unwrap();
+            state
+                .file
+                .accounts
+                .iter()
+                .find(|account| account.email == email)
+                .and_then(|account| account.client.clone())
+                .unwrap_or_else(|| "imported".into())
+        };
+        let client = if kind == "builtin" {
+            Self::builtin_client().ok_or_else(|| {
+                AppError::Message("账号使用内置 OAuth 客户端，但当前构建没有内置客户端，请重新登录。".into())
+            })?
+        } else {
             let state = self.state.lock().unwrap();
             state.client.clone().ok_or(AppError::NotSignedIn)?
         };

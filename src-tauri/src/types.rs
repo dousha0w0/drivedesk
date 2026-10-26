@@ -83,6 +83,9 @@ pub struct AppInfo {
     pub default_download_dir: String,
     pub secret_storage: String,
     pub accounts: Vec<crate::auth::Account>,
+    /// True when the binary carries an OAuth client, so the UI can offer
+    /// one-click sign-in instead of asking for a JSON file.
+    pub builtin_client: bool,
     pub gdirect_found: bool,
     pub gdirect_path: Option<String>,
     pub gdirect_version: Option<String>,

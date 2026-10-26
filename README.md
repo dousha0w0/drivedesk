@@ -64,11 +64,46 @@ DRIVEDESK_MOCK=1 cargo run --manifest-path src-tauri/Cargo.toml
 
 ### 2. 连接真实 Google Drive
 
-1. 在 [Google Cloud Console](https://console.cloud.google.com/) 建项目并启用 **Google Drive API**。
-2. 创建 **桌面应用（Desktop app）** 类型的 OAuth 客户端，下载 JSON。
-3. 打开 DriveDesk → 右上角账号 → 添加账号 → 选择一个 OAuth 客户端 JSON，浏览器完成授权。
+**方式 A：一键登录（构建里内置 OAuth 客户端）**
 
-只做一次；之后 `client_id/secret` 与刷新令牌都由应用自己保存（JSON 复制到数据目录，令牌进凭据库）。发布给他人时注意：`drive` 属于受限 scope，公开分发需要通过 Google 验证，否则只能自建客户端 + 把自己加成测试用户。
+```sh
+DRIVEDESK_GOOGLE_CLIENT_ID=xxxx.apps.googleusercontent.com \
+DRIVEDESK_GOOGLE_CLIENT_SECRET=yyyy \
+pnpm tauri build
+```
+
+这样打出来的包，登录弹窗只有一颗「使用 Google 登录」按钮，点一下进浏览器选账号即可，用户完全不需要碰 GCP。
+
+![一键登录](docs/login-quick.png)开发时用运行时环境变量也能达到同样效果，不必重编：
+
+```sh
+DRIVEDESK_GOOGLE_CLIENT_ID=... DRIVEDESK_GOOGLE_CLIENT_SECRET=... cargo run --manifest-path src-tauri/Cargo.toml
+```
+
+**方式 B：用户自带客户端**
+
+1. 在 [Google Cloud Console](https://console.cloud.google.com/) 建项目并启用 **Google Drive API**。
+2. 按 [创建凭据指南](https://developers.google.com/workspace/guides/create-credentials) 创建 **桌面应用（Desktop app）** 类型的 OAuth 客户端，下载 JSON。
+3. 打开 DriveDesk → 右上角账号 → 添加账号 → 选这个 JSON，浏览器完成授权。
+
+两种方式共用同一套代码：点「自行提供」时走 B，否则走 A。`client_id/secret` 与刷新令牌都由应用自己保存（JSON 复制到数据目录，令牌进凭据库）。
+
+#### 一键登录不是万能的：Google 的验证规则
+
+内置客户端 = 内置的是**某个具体 Google Cloud 项目**的 OAuth 客户端。桌面应用的 `client_secret` 按 Google 的定义是公开的，所以打包没风险；真正的限制在项目状态：
+
+| 项目状态 | 谁能登录 | refresh token 寿命 | 代价 |
+| --- | --- | --- | --- |
+| Testing（未验证） | 只有你在「测试用户」里加过的账号，**上限 100 个** | **7 天**，过期需重新登录 | 免费，5 分钟 |
+| In production + 已验证 | 任意 Google 账号 | 长期有效 | Drive 属受限 scope，需要 Google 验证（含 CASA 安全评估），每年复审 |
+
+所以：
+
+- **自己/小团队用**：建项目 → 同意屏加测试用户 → 用方式 A 打包，体验就是「下载即登录」。7 天重新登录一次。
+- **公开给任意用户**：要么完成受限 scope 验证，要么保持方式 B（让用户建自己的客户端）。
+- 别把别人的 client ID 打进自己的包：Google 会按客户端归属追责，也能随时撤销。
+
+这条限制不是实现问题——应用侧代码已经就绪（`account_login_quick`），换一个已验证的 client_id 就自动升级为全量可用。
 
 ### 3. 构建产物
 
@@ -167,7 +202,7 @@ Vue 组件 → stores → lib/api.ts → invoke() → commands.rs → Backend(Li
 
 ```sh
 cargo test --manifest-path src-tauri/Cargo.toml   # 19 项：排序/重名/查询构造/PDF 生成/凭据文件名/传输命名…
-pnpm test                                          # 27 项：选择模型/排序/格式化/偏好清洗/i18n 键覆盖
+pnpm test                                          # 32 项：选择模型/排序/格式化/偏好清洗/Google 错误映射/登录弹窗分支/i18n 键覆盖
 pnpm exec vue-tsc --noEmit                         # 类型检查
 ```
 

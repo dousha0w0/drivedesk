@@ -88,6 +88,8 @@ export interface AppInfo {
   defaultDownloadDir: string;
   secretStorage: string;
   accounts: Account[];
+  /** True when this build carries an OAuth client (one-click sign-in). */
+  builtinClient: boolean;
   gdirectFound: boolean;
   gdirectPath: string | null;
   gdirectVersion: string | null;

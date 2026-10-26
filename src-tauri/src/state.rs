@@ -84,6 +84,7 @@ impl AppState {
             default_download_dir: default_download_dir().to_string_lossy().to_string(),
             secret_storage: self.secret_storage(),
             accounts,
+            builtin_client: crate::auth::AuthStore::has_builtin_client(),
             gdirect_found: gdirect.found,
             gdirect_path: gdirect.path,
             gdirect_version: gdirect.version,

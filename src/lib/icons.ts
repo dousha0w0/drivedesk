@@ -60,6 +60,7 @@ export const ICONS: Record<string, string> = {
   external: "M14 4h6v6M20 4l-9 9M18 14v6H4V6h6",
   spinner: "M12 3a9 9 0 1 0 9 9",
   keyboard: "M3 6h18v12H3zM7 10h.01M11 10h.01M15 10h.01M7 14h10",
+  shield: "M12 3l7.5 3v5.5c0 4.6-3.2 7.7-7.5 8.5-4.3-.8-7.5-3.9-7.5-8.5V6zM9 12l2 2 4-4",
   filter: "M3 5h18l-7 8v6l-4-2v-4z",
   sort: "M8 4v16M4 8l4-4 4 4M16 20V4M12 16l4 4 4-4",
 };
