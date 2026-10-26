@@ -4,6 +4,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { errorMessage } from "@/lib/errors";
+import { api } from "@/lib/api";
 import { useUiStore } from "@/stores/ui";
 import { i18n } from "@/i18n";
 
@@ -92,12 +93,14 @@ export const useUpdaterStore = defineStore("updater", () => {
       prefs.value.lastCheckAt = Date.now();
       persist();
       update.value = found && prefs.value.ignoredVersion !== found.version ? found : null;
+      void api.log("info", update.value ? `updater: available ${update.value.version}` : "updater: up to date");
       if (!update.value && options.silent !== true) {
         ui.toast(t("updates.upToDate", { version: currentVersion.value }), "success");
       }
       if (update.value) dialogOpen.value = true;
     } catch (caught) {
       error.value = errorMessage(caught);
+      void api.log("warn", `updater: check failed: ${error.value}`);
       if (options.silent !== true) ui.toast(error.value, "error", 5200);
     } finally {
       checking.value = false;
