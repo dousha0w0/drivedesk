@@ -1,0 +1,177 @@
+/*
+ * Design tokens. Everything the UI paints reads from here, so a palette or a
+ * corner style is a variable swap — no component knows a colour literal.
+ * Tailwind v4 generates utilities from the `@theme inline` block below; the raw
+ * properties are what the components' own CSS uses.
+ */
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-selection: var(--selection);
+  --color-chrome: var(--dbx-chrome);
+  --color-gutter: var(--dbx-gutter);
+
+  --radius-sm: var(--dr-sm);
+  --radius-md: var(--dr-md);
+  --radius-lg: var(--dr-lg);
+  --radius-xl: var(--dr-xl);
+}
+
+:root {
+  color-scheme: light;
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --card: #ffffff;
+  --card-foreground: #0a0a0a;
+  --popover: #ffffff;
+  --popover-foreground: #0a0a0a;
+  --primary: #18181b;
+  --primary-foreground: #fafafa;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #27272a;
+  --muted: #f4f5f7;
+  --muted-foreground: #71717a;
+  --accent: #eef0f4;
+  --accent-foreground: #18181b;
+  --border: #e3e5e9;
+  --input: #d9dce1;
+  --ring: #a1a1aa;
+  --destructive: #dc2626;
+  --success: #15803d;
+  --warning: #b45309;
+  --selection: #e4ebf8;
+  --sidebar: #f7f8fa;
+  --sidebar-border: #e6e8ec;
+  --sidebar-foreground: #3f3f46;
+  --dbx-chrome: #f1f3f7;
+  --dbx-gutter: #e7eaf0;
+  --dbx-content: #ffffff;
+
+  --dr-sm: 5px;
+  --dr-md: 7px;
+  --dr-lg: 10px;
+  --dr-xl: 14px;
+  --dr-row: 30px;
+}
+
+.dark {
+  color-scheme: dark;
+  --background: #16181c;
+  --foreground: #e6e7ea;
+  --card: #1b1d22;
+  --card-foreground: #e6e7ea;
+  --popover: #1e2026;
+  --popover-foreground: #e6e7ea;
+  --primary: #e6e7ea;
+  --primary-foreground: #14161a;
+  --secondary: #23262c;
+  --secondary-foreground: #d9dbe0;
+  --muted: #22252b;
+  --muted-foreground: #9aa0a6;
+  --accent: #262a31;
+  --accent-foreground: #e6e7ea;
+  --border: #2b2f37;
+  --input: #353a43;
+  --ring: #616a78;
+  --destructive: #f87171;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --selection: #24303f;
+  --sidebar: #101216;
+  --sidebar-border: #24272d;
+  --sidebar-foreground: #c9ccd2;
+  --dbx-chrome: #191c21;
+  --dbx-gutter: #0e1013;
+  --dbx-content: #16181c;
+}
+
+/* Installable palettes: only the chrome/accent layer moves, text contrast is
+ * preserved because every derived surface still comes from the same tokens. */
+html.palette-graphite {
+  --primary: #0f172a;
+  --accent: #eceff4;
+  --dbx-chrome: #eceff4;
+  --dbx-gutter: #dfe4ea;
+  --sidebar: #f4f6f9;
+}
+html.palette-graphite.dark {
+  --primary: #dbe3f0;
+  --primary-foreground: #0b1220;
+  --accent: #232a35;
+  --dbx-chrome: #1a1f27;
+  --dbx-gutter: #0d1117;
+  --sidebar: #12161d;
+  --border: #2a313c;
+}
+
+html.palette-vscode {
+  --primary: #0066bf;
+  --primary-foreground: #ffffff;
+  --accent: #e8eef6;
+  --ring: #0066bf;
+  --dbx-chrome: #e8e8e8;
+  --dbx-gutter: #dcdcdc;
+  --sidebar: #f3f3f3;
+  --border: #d4d4d4;
+}
+html.palette-vscode.dark {
+  --background: #1e1e1e;
+  --foreground: #d4d4d4;
+  --card: #252526;
+  --popover: #252526;
+  --primary: #4daafc;
+  --primary-foreground: #0b1a26;
+  --accent: #2d2d30;
+  --muted: #2a2a2b;
+  --muted-foreground: #9d9d9d;
+  --border: #3c3c3c;
+  --input: #3a3a3a;
+  --ring: #0078d4;
+  --sidebar: #1b1b1c;
+  --dbx-chrome: #262626;
+  --dbx-gutter: #141414;
+  --dbx-content: #1e1e1e;
+  --selection: #04395e;
+}
+
+html[data-corners="small"] {
+  --dr-sm: 3px;
+  --dr-md: 4px;
+  --dr-lg: 6px;
+  --dr-xl: 8px;
+}
+html[data-corners="none"] {
+  --dr-sm: 0px;
+  --dr-md: 0px;
+  --dr-lg: 0px;
+  --dr-xl: 0px;
+}
+html[data-corners="square"] {
+  --dr-sm: 0px;
+  --dr-md: 0px;
+  --dr-lg: 0px;
+  --dr-xl: 0px;
+}

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DriveDesk</title>
+    <style>
+      html,
+      body,
+      #app {
+        margin: 0;
+        height: 100%;
+        background: #ffffff;
+        color: #0a0a0a;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+      html.dark,
+      html.dark body,
+      html.dark #app {
+        background: #16181c;
+        color: #e6e7ea;
+      }
+      #boot {
+        display: flex;
+        height: 100%;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        font-size: 13px;
+        opacity: 0.7;
+      }
+      #boot .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: currentColor;
+        animation: boot-pulse 1s ease-in-out infinite alternate;
+      }
+      @keyframes boot-pulse {
+        from { opacity: 0.25; }
+        to { opacity: 0.9; }
+      }
+    </style>
+    <script>
+      // Paint the saved theme before the bundle executes, so the first frame is not white.
+      try {
+        const mode = localStorage.getItem("drivedesk.theme") || "system";
+        const dark = mode === "dark" || (mode === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.classList.toggle("dark", dark);
+        document.documentElement.style.colorScheme = dark ? "dark" : "light";
+        const palette = localStorage.getItem("drivedesk.palette");
+        if (palette && palette !== "neutral") document.documentElement.classList.add("palette-" + palette);
+        const corners = localStorage.getItem("drivedesk.corners");
+        if (corners === "none" || corners === "small") document.documentElement.dataset.corners = corners;
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <div id="app"><div id="boot"><span class="dot"></span><span>DriveDesk</span></div></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

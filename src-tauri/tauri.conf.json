@@ -1,0 +1,62 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "DriveDesk",
+  "version": "0.1.0",
+  "identifier": "com.drivedesk.app",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "pnpm dev",
+    "beforeBuildCommand": "pnpm build:ui"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "DriveDesk",
+        "width": 1360,
+        "height": 860,
+        "minWidth": 980,
+        "minHeight": 620,
+        "visible": false,
+        "resizable": true,
+        "fullscreen": false,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": {
+          "x": 16,
+          "y": 18
+        },
+        "acceptFirstMouse": true
+      }
+    ],
+    "security": {
+      "csp": null,
+      "assetProtocol": {
+        "enable": true,
+        "scope": [
+          "$APPCACHE/**",
+          "$APPLOCALDATA/**",
+          "$DOWNLOAD/**",
+          "$TEMP/**",
+          "$HOME/Library/Caches/DriveDesk/**",
+          "$HOME/.cache/DriveDesk/**",
+          "$LOCALAPPDATA/DriveDesk/**"
+        ]
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "Productivity",
+    "shortDescription": "Google Drive desktop client",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}
