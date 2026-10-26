@@ -114,6 +114,7 @@ impl MockDrive {
             picture: None,
             is_default: true,
             has_client: true,
+            auth_kind: "oauth".into(),
         }]
     }
 

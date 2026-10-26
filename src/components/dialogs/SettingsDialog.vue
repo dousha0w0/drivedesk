@@ -270,6 +270,7 @@ function chooseLocale(next: Locale): void {
             <Icon name="account" :size="13" class="text-muted-foreground" />
             <span class="truncate">{{ account.email }}</span>
             <span v-if="account.isDefault" class="badge" data-tone="accent">default</span>
+            <span v-if="account.authKind === 'token'" class="badge" data-tone="warning">token</span>
           </span>
           <AppButton size="sm" variant="ghost" icon="logout" @click="signOut(account.email)">{{ $t("settings.signOut") }}</AppButton>
         </div>

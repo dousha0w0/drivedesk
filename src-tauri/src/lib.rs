@@ -28,6 +28,7 @@ pub fn run() {
             commands::accounts_list,
             commands::account_login,
             commands::account_login_quick,
+            commands::account_login_token,
             commands::account_switch,
             commands::account_logout,
             commands::quota_get,

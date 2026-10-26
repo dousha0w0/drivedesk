@@ -53,6 +53,11 @@ export const useSessionStore = defineStore("session", () => {
     return void account;
   }
 
+  async function loginToken(token: string): Promise<void> {
+    await api.accountLoginToken(token);
+    await refresh();
+  }
+
   async function switchTo(email: string): Promise<void> {
     await api.accountSwitch(email);
     await refresh();
@@ -90,6 +95,7 @@ export const useSessionStore = defineStore("session", () => {
     refresh,
     login,
     loginQuick,
+    loginToken,
     switchTo,
     signOut,
     updateSettings,

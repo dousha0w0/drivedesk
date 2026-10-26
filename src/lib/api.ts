@@ -28,6 +28,7 @@ export const api = {
   accountsList: () => invoke<Account[]>("accounts_list"),
   accountLogin: (clientJson?: string | null) => invoke<Account>("account_login", { clientJson: clientJson ?? null }),
   accountLoginQuick: () => invoke<Account>("account_login_quick"),
+  accountLoginToken: (token: string) => invoke<Account>("account_login_token", { token }),
   accountSwitch: (email: string) => invoke<void>("account_switch", { email }),
   accountLogout: (email: string) => invoke<void>("account_logout", { email }),
   quotaGet: () => invoke<Quota>("quota_get"),

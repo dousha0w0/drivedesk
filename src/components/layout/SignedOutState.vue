@@ -2,6 +2,7 @@
 import Icon from "@/components/ui/Icon.vue";
 import AppButton from "@/components/ui/AppButton.vue";
 import { api } from "@/lib/api";
+import TokenLoginForm from "@/components/auth/TokenLoginForm.vue";
 import { useGoogleSignIn } from "@/composables/useGoogleSignIn";
 
 const { working, error, hasBuiltin, quick, importClient } = useGoogleSignIn();
@@ -64,6 +65,8 @@ function openExternal(url: string): void {
           {{ $t("login.linkConsent") }}
         </AppButton>
       </div>
+
+      <div class="mt-3"><TokenLoginForm /></div>
 
       <div v-if="error" class="mt-3 rounded-[6px] border border-destructive/30 bg-destructive/10 px-2.5 py-2 text-[11.5px] leading-relaxed text-destructive">
         {{ error }}

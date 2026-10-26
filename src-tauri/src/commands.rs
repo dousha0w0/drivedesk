@@ -48,6 +48,12 @@ pub async fn account_login_quick(state: State<'_, AppState>) -> Result<crate::au
     state.backend.login_builtin().await
 }
 
+/// Sign in with a pasted short-lived access token (testing / CI).
+#[tauri::command]
+pub async fn account_login_token(state: State<'_, AppState>, token: String) -> Result<crate::auth::Account> {
+    state.backend.login_token(token).await
+}
+
 #[tauri::command]
 pub async fn account_switch(state: State<'_, AppState>, email: String) -> Result<()> {
     state.backend.switch(&email).await

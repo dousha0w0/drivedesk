@@ -4,6 +4,7 @@
  */
 const HINTS: readonly [RegExp, string][] = [
   [/invalid_grant/i, "error.invalidGrant"],
+  [/Google API error 401|Invalid Credentials/i, "error.unauthorized"],
   [/access_denied|access blocked|has not completed the Google verification/i, "error.accessDenied"],
   [/accessNotConfigured|has not been used in project|is disabled/i, "error.driveApiDisabled"],
   [/insufficientPermissions|insufficientFilePermissions|does not have sufficient permissions/i, "error.insufficientScope"],

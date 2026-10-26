@@ -82,13 +82,21 @@ pnpm tauri build
 DRIVEDESK_GOOGLE_CLIENT_ID=... DRIVEDESK_GOOGLE_CLIENT_SECRET=... cargo run --manifest-path src-tauri/Cargo.toml
 ```
 
-**方式 B：用户自带客户端**
+**方式 B：访问令牌（1 小时，适合立刻试功能）**
+
+不想碰 GCP 时最快的路：打开 [OAuth Playground](https://developers.google.com/oauthplayground)，在 Step 1 勾选 `https://www.googleapis.com/auth/drive`（或直接粘进 Scope 框），Authorize 后点「Exchange authorization code for tokens」，复制 **Access token**；回到登录页展开「使用访问令牌（快速测试）」，粘贴即可。
+
+- 令牌约 1 小时有效，没有 refresh token，过期后重新粘一个；应用会提示「访问令牌无效或已过期」。
+- 令牌只存系统凭据库，不出现在日志、URL 或 IPC 之外的地方。
+- 只适合自测，不能作为发行版的登录方式。
+
+**方式 C：用户自带客户端**
 
 1. 在 [Google Cloud Console](https://console.cloud.google.com/) 建项目并启用 **Google Drive API**。
 2. 按 [创建凭据指南](https://developers.google.com/workspace/guides/create-credentials) 创建 **桌面应用（Desktop app）** 类型的 OAuth 客户端，下载 JSON。
 3. 打开 DriveDesk → 右上角账号 → 添加账号 → 选这个 JSON，浏览器完成授权。
 
-两种方式共用同一套代码：点「自行提供」时走 B，否则走 A。`client_id/secret` 与刷新令牌都由应用自己保存（JSON 复制到数据目录，令牌进凭据库）。
+三条路径共用同一套代码（同一份 `Backend`、同一套 Drive 调用），只在「怎么拿到 bearer token」上不同。`client_id/secret` 与刷新令牌都由应用自己保存（JSON 复制到数据目录，令牌进凭据库）。
 
 #### 一键登录不是万能的：Google 的验证规则
 
@@ -204,7 +212,7 @@ Vue 组件 → stores → lib/api.ts → invoke() → commands.rs → Backend(Li
 
 ```sh
 cargo test --manifest-path src-tauri/Cargo.toml   # 19 项：排序/重名/查询构造/PDF 生成/凭据文件名/传输命名…
-pnpm test                                          # 36 项：选择模型/排序/格式化/偏好清洗/Google 错误映射/登录与未登录入口/平台判定/i18n 键覆盖
+pnpm test                                          # 39 项：选择模型/排序/格式化/偏好清洗/Google 错误映射/登录与未登录入口/令牌表单/平台判定/i18n 键覆盖
 pnpm exec vue-tsc --noEmit                         # 类型检查
 ```
 

@@ -39,6 +39,10 @@ export function useGoogleSignIn() {
     return run(() => session.loginQuick());
   }
 
+  function token(tokenValue: string): Promise<void> {
+    return run(() => session.loginToken(tokenValue.trim()));
+  }
+
   async function importClient(): Promise<void> {
     error.value = null;
     const picked = await openDialog({ multiple: false, filters: [{ name: "OAuth client", extensions: ["json"] }] });
@@ -46,5 +50,5 @@ export function useGoogleSignIn() {
     await run(() => session.login(picked));
   }
 
-  return { working, error, hasBuiltin, quick, importClient };
+  return { working, error, hasBuiltin, quick, token, importClient };
 }

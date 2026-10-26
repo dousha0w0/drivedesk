@@ -24,3 +24,9 @@ describe("googleErrorHint", () => {
     expect(googleErrorHint("文件超过 512 MB，请下载后再打开")).toBeNull();
   });
 });
+
+describe("expired access token", () => {
+  it("maps a 401 from Drive to the token hint", () => {
+    expect(googleErrorHint("Google API error 401: Invalid Credentials")).toBe("error.unauthorized");
+  });
+});

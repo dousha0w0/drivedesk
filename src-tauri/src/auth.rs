@@ -35,6 +35,8 @@ pub struct Account {
     pub picture: Option<String>,
     pub is_default: bool,
     pub has_client: bool,
+    /// `oauth` (refresh token) or `token` (pasted access token, testing only).
+    pub auth_kind: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -183,6 +185,7 @@ impl AuthStore {
                 picture: account.picture.clone(),
                 is_default: default.as_deref() == Some(account.email.as_str()),
                 has_client,
+                auth_kind: if account.client.as_deref() == Some("token") { "token".into() } else { "oauth".into() },
             })
             .collect()
     }
@@ -200,6 +203,62 @@ impl AuthStore {
     /// Drop the cached access token so the next call refreshes it.
     pub fn invalidate(&self, email: &str) {
         self.state.lock().unwrap().tokens.remove(email);
+    }
+
+    /// Sign in with a short-lived OAuth access token (OAuth Playground, gcloud,
+    /// CI). No refresh token exists, so the session lasts as long as the token.
+    pub async fn login_token(&self, token: String) -> Result<Account> {
+        let token = validate_token_string(token)?;
+        let about = self.fetch_about(&token).await.map_err(|error| match error {
+            AppError::Api { status: 401, .. } => {
+                AppError::Message("访问令牌无效或已过期，请重新获取".into())
+            }
+            other => other,
+        })?;
+
+        let email = about.email_address;
+        let name = about.display_name.unwrap_or_else(|| email.clone());
+        self.secrets.set(&email, &token)?;
+
+        let account = Account {
+            email: email.clone(),
+            name: name.clone(),
+            picture: about.photo_link.clone(),
+            is_default: true,
+            has_client: self.has_any_client(),
+            auth_kind: "token".into(),
+        };
+
+        let mut state = self.state.lock().unwrap();
+        state
+            .tokens
+            .insert(email.clone(), (token, Instant::now() + Duration::from_secs(60)));
+        if let Some(existing) = state.file.accounts.iter_mut().find(|account| account.email == email) {
+            existing.name = name;
+            existing.picture = about.photo_link;
+            existing.client = Some("token".into());
+        } else {
+            state.file.accounts.push(StoredAccount {
+                email: email.clone(),
+                name,
+                picture: about.photo_link,
+                client: Some("token".into()),
+            });
+        }
+        state.file.default_email = Some(email);
+        self.persist(&state.file)?;
+        Ok(account)
+    }
+
+    fn account_kind(&self, email: &str) -> String {
+        let state = self.state.lock().unwrap();
+        state
+            .file
+            .accounts
+            .iter()
+            .find(|account| account.email == email)
+            .and_then(|account| account.client.clone())
+            .unwrap_or_else(|| "imported".into())
     }
 
     pub fn switch(&self, email: &str) -> Result<()> {
@@ -339,6 +398,7 @@ impl AuthStore {
             picture: about.photo_link,
             is_default: true,
             has_client: true,
+            auth_kind: "oauth".into(),
         };
 
         {
@@ -368,6 +428,12 @@ impl AuthStore {
 
     /// Valid access token for an account, refreshed on demand.
     pub async fn access_token(&self, email: &str) -> Result<String> {
+        if self.account_kind(email) == "token" {
+            return self
+                .secrets
+                .get(email)?
+                .ok_or_else(|| AppError::Message("访问令牌已失效，请重新粘贴一个".into()));
+        }
         {
             let state = self.state.lock().unwrap();
             if let Some((token, expires)) = state.tokens.get(email) {
@@ -487,6 +553,17 @@ fn read_client(path: &Path) -> Result<OAuthClient> {
         client_secret: installed.client_secret,
         token_uri: installed.token_uri.unwrap_or_else(|| DEFAULT_TOKEN_URI.to_string()),
     })
+}
+
+fn validate_token_string(token: String) -> Result<String> {
+    let trimmed = token.trim().to_string();
+    if trimmed.is_empty() {
+        return Err(AppError::Invalid("访问令牌不能为空".into()));
+    }
+    if trimmed.len() > 4096 || !trimmed.bytes().all(|byte| byte.is_ascii_graphic()) {
+        return Err(AppError::Invalid("访问令牌格式不正确".into()));
+    }
+    Ok(trimmed)
 }
 
 fn urlencode(value: &str) -> String {
@@ -609,6 +686,14 @@ mod tests {
         assert_eq!(client.client_id, "id.apps.googleusercontent.com");
         assert_eq!(client.token_uri, "https://oauth2.googleapis.com/token");
         std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn access_tokens_are_trimmed_and_validated() {
+        assert_eq!(validate_token_string("  ya29.abc-def  ".into()).unwrap(), "ya29.abc-def");
+        assert!(validate_token_string("   ".into()).is_err());
+        assert!(validate_token_string("line\nbreak".into()).is_err());
+        assert!(validate_token_string("x".repeat(5000)).is_err());
     }
 
     #[test]

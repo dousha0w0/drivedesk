@@ -78,6 +78,8 @@ export interface Account {
   picture: string | null;
   isDefault: boolean;
   hasClient: boolean;
+  /** `oauth` = refresh token; `token` = pasted access token (testing only). */
+  authKind: "oauth" | "token";
 }
 
 export interface AppInfo {
