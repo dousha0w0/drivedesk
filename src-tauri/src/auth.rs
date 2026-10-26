@@ -375,9 +375,15 @@ fn read_client(path: &Path) -> Result<OAuthClient> {
         .map_err(|error| AppError::Message(format!("无法读取 OAuth 客户端 JSON: {error}")))?;
     let parsed: ClientFile = serde_json::from_str(&raw)
         .map_err(|error| AppError::Message(format!("OAuth 客户端 JSON 格式不正确: {error}")))?;
+    // A `web` client cannot use a loopback redirect; Google rejects it at the
+    // consent step, which is much harder to diagnose than saying so up front.
+    if parsed.installed.is_none() && parsed.web.is_some() {
+        return Err(AppError::Message(
+            "这是「Web 应用」类型的 OAuth 客户端。请在 Google Cloud 重新创建「桌面应用（Desktop app）」类型并下载 JSON。".into(),
+        ));
+    }
     let installed = parsed
         .installed
-        .or(parsed.web)
         .ok_or_else(|| AppError::Message("OAuth 客户端 JSON 缺少 installed 段".into()))?;
     if installed.client_id.trim().is_empty() {
         return Err(AppError::Message("OAuth 客户端缺少 client_id".into()));
@@ -495,6 +501,10 @@ mod tests {
         let file = dir.join("client.json");
         std::fs::write(&file, r#"{"client_id":"x"}"#).unwrap();
         assert!(read_client(&file).is_err());
+
+        std::fs::write(&file, r#"{"web":{"client_id":"id.apps.googleusercontent.com","client_secret":"secret"}}"#).unwrap();
+        let web_error = read_client(&file).unwrap_err().to_string();
+        assert!(web_error.contains("桌面应用"));
 
         std::fs::write(
             &file,
