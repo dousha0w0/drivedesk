@@ -32,22 +32,23 @@ function mountState(overrides: Partial<AppInfo>) {
 }
 
 describe("SignedOutState", () => {
-  beforeEach(() => setLocale("zh-CN"));
+  beforeEach(() => {
+    setLocale("zh-CN");
+    window.localStorage.clear();
+  });
 
   it("is reachable and offers one-click sign-in when the build has a client", () => {
     const wrapper = mountState({ builtinClient: true });
-    const primary = wrapper.find('[data-testid="signed-out-primary"]');
-    expect(primary.exists()).toBe(true);
-    expect(primary.text()).toBe(i18n.global.t("login.signIn"));
+    const submit = wrapper.find('[data-testid="signin-google-submit"]');
+    expect(submit.exists()).toBe(true);
+    expect(submit.text()).toBe(i18n.global.t("login.signIn"));
     expect(wrapper.text()).toContain(i18n.global.t("login.builtinHint"));
-    expect(wrapper.text()).toContain(i18n.global.t("login.useOwn"));
   });
 
-  it("falls back to importing a client JSON when the build has none", () => {
+  it("falls back to the token tab when the build has no client", () => {
     const wrapper = mountState({ builtinClient: false });
-    const primary = wrapper.find('[data-testid="signed-out-primary"]');
-    expect(primary.text()).toBe(i18n.global.t("login.import"));
-    expect(wrapper.text()).toContain(i18n.global.t("login.noBuiltin"));
-    expect(wrapper.text()).not.toContain(i18n.global.t("login.useOwn"));
+    expect(wrapper.find('[data-testid="signin-google-submit"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="token-input"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="signin-method-json"]').exists()).toBe(true);
   });
 });

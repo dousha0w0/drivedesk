@@ -1,0 +1,98 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.label }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: macOS arm64
+            platform: macos-14
+            args: --target aarch64-apple-darwin
+          - label: macOS x64
+            platform: macos-14
+            args: --target x86_64-apple-darwin
+            targets: x86_64-apple-darwin
+          - label: Linux x64
+            platform: ubuntu-22.04
+            args: ""
+          - label: Windows x64
+            platform: windows-latest
+            args: ""
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Tauri system dependencies (Linux)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev patchelf \
+            libayatana-appindicator3-dev libssl-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Add cross-compilation target
+        if: matrix.targets != ''
+        run: rustup target add ${{ matrix.targets }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          key: ${{ matrix.platform }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.4.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Resolve version and release notes
+        id: notes
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          if [ "${GITHUB_REF_TYPE}" != "tag" ]; then
+            version=$(node -p "require('./package.json').version")
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          node scripts/release-notes.mjs "$version" > release-notes.md
+          {
+            echo "body<<RELEASE_BODY_EOF"
+            cat release-notes.md
+            echo "RELEASE_BODY_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      # Only the first matrix job that finishes creates the release; tauri-action
+      # reuses it for the rest and merges each platform's latest.json entry.
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Optional: a Desktop OAuth client baked into the build so users get
+          # one-click sign-in. Leave the secrets unset to ship the BYO path.
+          DRIVEDESK_GOOGLE_CLIENT_ID: ${{ secrets.DRIVEDESK_GOOGLE_CLIENT_ID }}
+          DRIVEDESK_GOOGLE_CLIENT_SECRET: ${{ secrets.DRIVEDESK_GOOGLE_CLIENT_SECRET }}
+        with:
+          tagName: v__VERSION__
+          releaseName: DriveDesk v__VERSION__
+          releaseBody: ${{ steps.notes.outputs.body }}
+          releaseDraft: ${{ github.event_name == 'workflow_dispatch' }}
+          prerelease: false
+          includeUpdaterJson: true
+          args: ${{ matrix.args }}

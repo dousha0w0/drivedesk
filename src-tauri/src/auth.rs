@@ -151,8 +151,9 @@ impl AuthStore {
     pub fn builtin_client() -> Option<OAuthClient> {
         let id = std::env::var(BUILTIN_RUNTIME_ID)
             .ok()
-            .filter(|value| !value.trim().is_empty())
-            .or_else(|| BUILTIN_CLIENT_ID.map(str::to_string))?;
+            .or_else(|| BUILTIN_CLIENT_ID.map(str::to_string))
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty())?;
         let secret = std::env::var(BUILTIN_RUNTIME_SECRET)
             .ok()
             .or_else(|| BUILTIN_CLIENT_SECRET.map(str::to_string))

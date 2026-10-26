@@ -57,6 +57,18 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEE3MkJEMjBFRTdCRkQ5NzkKUldSNTJiL25EdElycHdIcVpTbTJYUjZJRE5NK1YvVHA5bk9EaHJpTXNrcnArNUlSb1JQclJRejAK",
+      "endpoints": [
+        "https://github.com/dousha0w0/drivedesk/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

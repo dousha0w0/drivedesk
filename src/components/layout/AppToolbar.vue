@@ -6,6 +6,7 @@ import Icon from "@/components/ui/Icon.vue";
 import { useFilesStore } from "@/stores/files";
 import { useSessionStore } from "@/stores/session";
 import { useTransfersStore } from "@/stores/transfers";
+import { useUpdaterStore } from "@/stores/updater";
 import { useUiStore } from "@/stores/ui";
 import { useDialogsStore } from "@/stores/dialogs";
 import { i18n } from "@/i18n";
@@ -15,6 +16,7 @@ import { api } from "@/lib/api";
 const files = useFilesStore();
 const session = useSessionStore();
 const transfers = useTransfersStore();
+const updater = useUpdaterStore();
 const ui = useUiStore();
 const dialogs = useDialogsStore();
 const t = (key: string, params?: Record<string, unknown>) => i18n.global.t(key, params ?? {});
@@ -176,6 +178,16 @@ function showDetails(): void {
         </button>
       </div>
     </div>
+
+    <button
+      v-if="updater.availableVersion"
+      class="flex h-8 items-center gap-1 rounded-[6px] border border-border bg-card px-2 text-[11.5px] hover:bg-muted"
+      data-testid="update-badge"
+      @click="updater.dialogOpen = true"
+    >
+      <Icon name="arrow-up" :size="13" class="text-warning" />
+      <span>{{ updater.availableVersion }}</span>
+    </button>
 
     <AppButton
       v-if="!session.signedIn && !session.isMock"

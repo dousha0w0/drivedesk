@@ -1,5 +1,8 @@
 # DriveDesk
 
+[![CI](https://github.com/dousha0w0/drivedesk/actions/workflows/ci.yml/badge.svg)](https://github.com/dousha0w0/drivedesk/actions/workflows/ci.yml)
+[![Release](https://github.com/dousha0w0/drivedesk/actions/workflows/release.yml/badge.svg)](https://github.com/dousha0w0/drivedesk/releases)
+
 一个轻量的 Google Drive 桌面客户端：**Tauri 2 + Vue 3 + Tailwind v4**，界面逻辑沿用 DBX 那套工作台（设计变量 / 双布局 / 可拖拽面板 / 虚拟表格 / 标签式导航），后端用 Rust 直连 Drive REST API，凭据进系统凭据库。
 
 ![DriveDesk](docs/screenshot.png)
@@ -132,10 +135,42 @@ DRIVEDESK_GOOGLE_CLIENT_ID=... DRIVEDESK_GOOGLE_CLIENT_SECRET=... cargo run --ma
 ### 3. 构建产物
 
 ```sh
-pnpm tauri build          # .app / .dmg / .msi / AppImage，图标已生成
+# 本地打包需要更新签名私钥（见“自动更新”），否则 updater 产物无法生成
+TAURI_SIGNING_PRIVATE_KEY=/path/to/updater.key pnpm tauri build
 ```
 
 手工 `cargo build --release` 时必须加 `--features custom-protocol`，否则内嵌的 `dist/` 不会被 `tauri://localhost` 提供，窗口会是空白；`pnpm tauri build` 会自动带上。
+
+### 4. 发布新版本
+
+```sh
+node scripts/bump-version.mjs 0.2.0      # package.json / tauri.conf.json / Cargo.toml
+# 在 CHANGELOG.md 写 ## [0.2.0] 段落（会成为 release body 和应用内更新日志）
+git commit -am "release: v0.2.0" && git tag v0.2.0 && git push --tags
+```
+
+推 tag 后 `.github/workflows/release.yml` 会在 macOS arm64/x64、Linux、Windows 上并行打包，签名 updater 产物，汇总成 `latest.json` 并发布 Release。
+
+## 自动更新
+
+- 客户端用 `tauri-plugin-updater`：启动 4 秒后静默检查一次（可在设置里关掉），也可以手动“检查更新”。
+- 更新源是 `https://github.com/dousha0w0/drivedesk/releases/latest/download/latest.json`，只有**已发布**的 Release 才会被看到（draft 不算）。
+- 安装包用 minisign 公钥校验（`tauri.conf.json → plugins.updater.pubkey`），私钥只存在于 GitHub Secrets。
+- 更新弹窗直接展示 Release 的正文（来自 `CHANGELOG.md` 对应版本段落），包含版本号、发布时间、下载进度，装完自动重启。
+- 设置页可查看当前版本、上次检查时间、忽略的版本并恢复提醒。
+
+维护者一次性配置：
+
+```sh
+pnpm tauri signer generate -w ~/drivedesk-updater.key   # 已有则跳过
+gh secret set TAURI_SIGNING_PRIVATE_KEY < ~/drivedesk-updater.key
+gh secret set TAURI_SIGNING_PRIVATE_KEY_PASSWORD --body ""
+# 可选：让发布版内置 OAuth 客户端，实现一键登录
+gh secret set DRIVEDESK_GOOGLE_CLIENT_ID --body "xxxx.apps.googleusercontent.com"
+gh secret set DRIVEDESK_GOOGLE_CLIENT_SECRET --body "GOCSPX-..."
+```
+
+**私钥丢失 = 已发版本无法再收到更新**，请离线备份。
 
 ---
 
@@ -226,7 +261,7 @@ Vue 组件 → stores → lib/api.ts → invoke() → commands.rs → Backend(Li
 
 ```sh
 cargo test --manifest-path src-tauri/Cargo.toml   # 21 项：排序/重名/查询构造/PDF 生成/凭据文件名/传输命名…
-pnpm test                                          # 39 项：选择模型/排序/格式化/偏好清洗/Google 错误映射/登录与未登录入口/令牌表单/平台判定/i18n 键覆盖
+pnpm test                                          # 43 项：选择模型/排序/格式化/偏好清洗/Google 错误映射/登录面板/更新弹窗/平台判定/错误映射/i18n 键覆盖
 pnpm exec vue-tsc --noEmit                         # 类型检查
 ```
 
@@ -252,5 +287,6 @@ MIT，见 `LICENSE`。通过子进程调用的 gdirect 是独立的 GPL-2.0-or-l
 - **共享与权限**：可看「与我共享」和复制链接，不能改 ACL、不能管理共享云端硬盘（Shared Drives）。
 - **同步**：没有 `changes` feed / 离线缓存，列表以打开时拉取为准。
 - **永久删除**：回收站外没有「删除」入口；团队盘（Team Drive）元数据只做了 `supportsAllDrives` 基础兼容。
-- **平台**：macOS 上完整验证（含窗口截图与冒烟）；Windows/Linux 代码路径齐全但未实测，Windows 会保留系统标题栏（配置只对 macOS 用了 Overlay）。
+- **平台**：macOS 上完整验证（含窗口截图与冒烟）；Windows/Linux 代码路径齐全但未在真机跑过，Windows 会保留系统标题栏（配置只对 macOS 用了 Overlay）。
+- **更新签名**：macOS/Windows 安装包没有代码签名证书（Apple notarization / Authenticode），首次打开会有系统警告；updater 的 minisign 签名是独立的一套，已经配好。
 - **gdirect**：只做传输，进度是文件大小轮询；需要用户自己装好并登录。

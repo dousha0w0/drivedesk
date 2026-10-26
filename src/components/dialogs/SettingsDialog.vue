@@ -8,12 +8,15 @@ import Icon from "@/components/ui/Icon.vue";
 import { LOCALES, currentLocale, i18n, setLocale, type Locale } from "@/i18n";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errors";
+import { formatDateLong } from "@/lib/format";
 import { useSessionStore } from "@/stores/session";
+import { useUpdaterStore } from "@/stores/updater";
 import { useUiStore } from "@/stores/ui";
 import type { BackendSettings, CornerStyle, LayoutMode, Palette, ThemeMode, Density } from "@/types/drive";
 
 const ui = useUiStore();
 const session = useSessionStore();
+const updater = useUpdaterStore();
 const t = (key: string, params?: Record<string, unknown>) => i18n.global.t(key, params ?? {});
 
 const settings = ref<BackendSettings | null>(null);
@@ -285,6 +288,46 @@ function chooseLocale(next: Locale): void {
         <div class="settings-row">
           <span>{{ $t("settings.cache") }}</span>
           <AppButton size="sm" variant="secondary" icon="trash" @click="clearCache">{{ $t("settings.clearCache") }}</AppButton>
+        </div>
+      </section>
+
+      <section>
+        <h3 class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{{ $t("updates.title") }}</h3>
+        <div class="settings-row">
+          <span>{{ $t("updates.currentVersion") }}</span>
+          <div class="flex items-center gap-2">
+            <span class="text-[11.5px] tabular-nums">v{{ updater.currentVersion }}</span>
+            <AppButton size="sm" variant="secondary" icon="refresh" :disabled="updater.checking || updater.installing" @click="updater.checkForUpdates()">
+              {{ updater.checking ? $t("updates.checking") : $t("updates.check") }}
+            </AppButton>
+          </div>
+        </div>
+        <div class="settings-row">
+          <span>{{ $t("updates.autoCheck") }}</span>
+          <SwitchToggle
+            :model-value="updater.prefs.autoCheck"
+            :label="$t('updates.autoCheck')"
+            @update:model-value="updater.setAutoCheck($event)"
+          />
+        </div>
+        <div class="settings-row">
+          <span>{{ $t("updates.lastChecked") }}</span>
+          <span class="text-[11.5px] text-muted-foreground">
+            {{ updater.prefs.lastCheckAt ? formatDateLong(new Date(updater.prefs.lastCheckAt).toISOString()) : $t("updates.neverChecked") }}
+          </span>
+        </div>
+        <div v-if="updater.prefs.ignoredVersion" class="settings-row">
+          <span>{{ $t("updates.ignored", { version: updater.prefs.ignoredVersion }) }}</span>
+          <AppButton size="sm" variant="ghost" icon="refresh" @click="updater.clearIgnored()">{{ $t("updates.clearIgnored") }}</AppButton>
+        </div>
+        <div class="settings-row items-start">
+          <span />
+          <div class="flex flex-col gap-1">
+            <AppButton size="sm" variant="ghost" icon="external" @click="api.systemOpenUrl('https://github.com/dousha0w0/drivedesk/releases')">
+              {{ $t("updates.openReleases") }}
+            </AppButton>
+            <span class="text-[10.5px] text-muted-foreground">{{ $t("updates.manualHint") }}</span>
+          </div>
         </div>
       </section>
 

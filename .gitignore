@@ -5,3 +5,9 @@ src-tauri/target
 *.log
 .smoke
 src-tauri/gen/schemas
+
+# updater signing keys and other local secrets
+*.key
+*.pem
+.env
+.env.*

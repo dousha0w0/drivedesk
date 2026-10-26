@@ -17,6 +17,7 @@ import SettingsDialog from "@/components/dialogs/SettingsDialog.vue";
 import PromptDialog from "@/components/dialogs/PromptDialog.vue";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog.vue";
 import MoveDialog from "@/components/dialogs/MoveDialog.vue";
+import UpdateDialog from "@/components/dialogs/UpdateDialog.vue";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errors";
 import { runSmoke } from "@/lib/smoke";
@@ -25,6 +26,7 @@ import { useDialogsStore } from "@/stores/dialogs";
 import { useFilesStore } from "@/stores/files";
 import { useSessionStore } from "@/stores/session";
 import { useTransfersStore } from "@/stores/transfers";
+import { useUpdaterStore } from "@/stores/updater";
 import { useUiStore } from "@/stores/ui";
 import { i18n } from "@/i18n";
 
@@ -33,6 +35,7 @@ const session = useSessionStore();
 const files = useFilesStore();
 const transfers = useTransfersStore();
 const dialogs = useDialogsStore();
+const updater = useUpdaterStore();
 const t = (key: string, params?: Record<string, unknown>) => i18n.global.t(key, params ?? {});
 
 const sidebarWidth = ref(ui.prefs.sidebarWidth);
@@ -253,6 +256,7 @@ async function bootstrap(): Promise<void> {
 
   await api.appReady();
   log("bootstrap: window ready");
+  await updater.init();
 
   const smoke = await api.smokeConfig().catch(() => null);
   log(`bootstrap: smoke=${smoke?.enabled ?? false}`);
@@ -317,6 +321,7 @@ onBeforeUnmount(() => {
       <PromptDialog />
       <ConfirmDialog />
       <MoveDialog />
+      <UpdateDialog />
 
       <div v-if="dragOver" class="drag-overlay">{{ $t("transfers.upload") }}</div>
     </template>

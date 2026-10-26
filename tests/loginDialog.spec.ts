@@ -38,29 +38,33 @@ function mountDialog(overrides: Partial<AppInfo>) {
 }
 
 describe("LoginDialog", () => {
-  beforeEach(() => setLocale("zh-CN"));
+  beforeEach(() => {
+    setLocale("zh-CN");
+    window.localStorage.clear();
+  });
 
   it("offers one-click sign-in when the build carries a client", () => {
     const wrapper = mountDialog({ builtinClient: true });
-    const quick = wrapper.find('[data-testid="quick-login"]');
-    expect(quick.exists()).toBe(true);
-    expect(quick.text()).toBe(i18n.global.t("login.signIn"));
+    const submit = wrapper.find('[data-testid="signin-google-submit"]');
+    expect(submit.exists()).toBe(true);
+    expect(submit.text()).toBe(i18n.global.t("login.signIn"));
     expect(wrapper.text()).toContain(i18n.global.t("login.builtinHint"));
     expect(wrapper.text()).toContain(i18n.global.t("login.testingNote"));
-    expect(wrapper.text()).toContain(i18n.global.t("login.useOwn"));
   });
 
-  it("asks for a client JSON when this build has none", () => {
+  it("opens the token tab when this build has no client, with the JSON tab beside it", async () => {
     const wrapper = mountDialog({ builtinClient: false });
-    expect(wrapper.find('[data-testid="quick-login"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="signin-google-submit"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="token-input"]').exists()).toBe(true);
+
+    await wrapper.find('[data-testid="signin-method-json"]').trigger("click");
     expect(wrapper.text()).toContain(i18n.global.t("login.noBuiltin"));
-    expect(wrapper.text()).toContain(i18n.global.t("login.step1"));
-    expect(wrapper.text()).toContain(i18n.global.t("login.import"));
+    expect(wrapper.find('[data-testid="json-submit"]').text()).toBe(i18n.global.t("login.import"));
   });
 
   it("keeps the demo copy in mock mode", () => {
     const wrapper = mountDialog({ builtinClient: false, mock: true });
     expect(wrapper.text()).toContain(i18n.global.t("login.mockBody"));
-    expect(wrapper.find('[data-testid="quick-login"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="signin-method-token"]').exists()).toBe(false);
   });
 });
