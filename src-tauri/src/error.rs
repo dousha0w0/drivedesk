@@ -44,7 +44,7 @@ impl From<reqwest::Error> for AppError {
 
 impl From<serde_json::Error> for AppError {
     fn from(error: serde_json::Error) -> Self {
-        AppError::Message(format!("unexpected response: {error}"))
+        AppError::Message(format!("响应格式不符合预期：{error}"))
     }
 }
 

@@ -211,7 +211,7 @@ Vue 组件 → stores → lib/api.ts → invoke() → commands.rs → Backend(Li
 ## 验证
 
 ```sh
-cargo test --manifest-path src-tauri/Cargo.toml   # 19 项：排序/重名/查询构造/PDF 生成/凭据文件名/传输命名…
+cargo test --manifest-path src-tauri/Cargo.toml   # 21 项：排序/重名/查询构造/PDF 生成/凭据文件名/传输命名…
 pnpm test                                          # 39 项：选择模型/排序/格式化/偏好清洗/Google 错误映射/登录与未登录入口/令牌表单/平台判定/i18n 键覆盖
 pnpm exec vue-tsc --noEmit                         # 类型检查
 ```

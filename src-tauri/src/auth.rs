@@ -96,6 +96,7 @@ struct TokenResponse {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct AboutUser {
     email_address: String,
     #[serde(default)]
@@ -686,6 +687,24 @@ mod tests {
         assert_eq!(client.client_id, "id.apps.googleusercontent.com");
         assert_eq!(client.token_uri, "https://oauth2.googleapis.com/token");
         std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn parses_the_users_about_payload_as_google_sends_it() {
+        let user: AboutUser = serde_json::from_value(serde_json::json!({
+            "emailAddress": "me@example.com",
+            "displayName": "Some One",
+            "photoLink": "https://lh3.googleusercontent.com/a/x"
+        }))
+        .unwrap();
+        assert_eq!(user.email_address, "me@example.com");
+        assert_eq!(user.display_name.as_deref(), Some("Some One"));
+
+        // displayName/photoLink are optional; emailAddress is not.
+        let minimal: AboutUser = serde_json::from_value(serde_json::json!({ "emailAddress": "a@b.c" })).unwrap();
+        assert_eq!(minimal.email_address, "a@b.c");
+        assert!(minimal.display_name.is_none());
+        assert!(serde_json::from_value::<AboutUser>(serde_json::json!({ "email_address": "a@b.c" })).is_err());
     }
 
     #[test]
